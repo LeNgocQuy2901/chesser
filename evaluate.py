@@ -1,5 +1,115 @@
 import chess
+import chess
+import numpy as np
 
+# Define piece values
+piece_values = {
+    chess.PAWN: 100,
+    chess.KNIGHT: 320,
+    chess.BISHOP: 330,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+    chess.KING: 20000
+}
+
+# Define piece-square tables
+PAWN_TABLE = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5, -5,-10,  0,  0,-10, -5,  5,
+    5, 10, 10,-20,-20, 10, 10,  5,
+    0,  0,  0,  0,  0,  0,  0,  0
+]
+
+PAWN_ENDGAME_TABLE = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    80, 80, 80, 80, 80, 80, 80, 80,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    30, 30, 30, 30, 30, 30, 30, 30,
+    20, 20, 20, 20, 20, 20, 20, 20,
+    10, 10, 10, 10, 10, 10, 10, 10,
+    10, 10, 10, 10, 10, 10, 10, 10,
+    0,  0,  0,  0,  0,  0,  0,  0
+]
+
+KNIGHT_TABLE = [
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50
+]
+
+BISHOP_TABLE = [
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5,  5,  5,  5,  5,-10,
+    -10,  0,  5,  0,  0,  5,  0,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20
+]
+
+ROOK_TABLE = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0
+]
+
+QUEEN_TABLE = [
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+    -5,  0,  5,  5,  5,  5,  0, -5,
+    0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
+]
+
+KING_START = [
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20
+]
+
+KING_END = [
+    -50,-40,-30,-20,-20,-30,-40,-50,
+    -30,-20,-10,  0,  0,-10,-20,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-30,  0,  0,  0,  0,-30,-30,
+    -50,-30,-30,-30,-30,-30,-30,-50
+]
+
+# Convert piece-square tables to numpy arrays for faster access
+PAWN_TABLE = np.array(PAWN_TABLE)
+PAWN_ENDGAME_TABLE = np.array(PAWN_ENDGAME_TABLE)
+KNIGHT_TABLE = np.array(KNIGHT_TABLE)
+BISHOP_TABLE = np.array(BISHOP_TABLE)
+ROOK_TABLE = np.array(ROOK_TABLE)
+QUEEN_TABLE = np.array(QUEEN_TABLE)
+KING_START = np.array(KING_START)
+KING_END = np.array(KING_END)
 # --- Piece-square tables from SebLague's PieceSquareTable.cs ---
 PAWN_TABLE = [
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -68,13 +178,13 @@ QUEEN_TABLE = [
 ]
 
 KING_START = [
-    -80, -70, -70, -70, -70, -70, -70, -80, 
-    -60, -60, -60, -60, -60, -60, -60, -60, 
-    -40, -50, -50, -60, -60, -50, -50, -40, 
-    -30, -40, -40, -50, -50, -40, -40, -30, 
-    -20, -30, -30, -40, -40, -30, -30, -20, 
-    -10, -20, -20, -20, -20, -20, -20, -10, 
-     20,  20,  -5,  -5,  -5,  -5,  20,  20, 
+    -80, -70, -70, -70, -70, -70, -70, -80,
+    -60, -60, -60, -60, -60, -60, -60, -60,
+    -40, -50, -50, -60, -60, -50, -50, -40,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -20, -30, -30, -40, -40, -30, -30, -20,
+    -10, -20, -20, -20, -20, -20, -20, -10,
+     20,  20,  -5,  -5,  -5,  -5,  20,  20,
      20,  30,  10,   0,   0,  10,  30,  20
 ]
 
@@ -195,14 +305,14 @@ def evaluate_board(board):
     white_score += evaluate_piece_square(board, chess.WHITE, white_end)
     black_score += evaluate_piece_square(board, chess.BLACK, black_end)
 
-    white_score += evaluate_pawns(board, chess.WHITE)
-    black_score += evaluate_pawns(board, chess.BLACK)
+    # white_score += evaluate_pawns(board, chess.WHITE)
+    # black_score += evaluate_pawns(board, chess.BLACK)
 
-    white_score += king_pawn_shield(board, chess.WHITE)
-    black_score += king_pawn_shield(board, chess.BLACK)
+    # white_score += king_pawn_shield(board, chess.WHITE)
+    # black_score += king_pawn_shield(board, chess.BLACK)
 
-    white_score += mop_up_eval(board, chess.WHITE, white_mat, black_mat, black_end)
-    black_score += mop_up_eval(board, chess.BLACK, black_mat, white_mat, white_end)
+    # white_score += mop_up_eval(board, chess.WHITE, white_mat, black_mat, black_end)
+    # black_score += mop_up_eval(board, chess.BLACK, black_mat, white_mat, white_end)
 
     eval_score = white_score - black_score
     return eval_score if board.turn == chess.WHITE else -eval_score

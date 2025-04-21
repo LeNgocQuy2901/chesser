@@ -29,7 +29,7 @@ class AI:
                     # ❌ Nếu không tìm thấy, dùng Searcher
                     if move is None:
                         searcher = Searcher()
-                        move = searcher.iterative_deepening(board_state, max_depth=5, time_limit=9.5)
+                        move = searcher.iterative_deepening(board_state, max_depth=6, time_limit=9)
                         print(f"[AI] Đã chọn nước đi: {move} trong {time.time() - start:.2f} giây")
 
                     self.move = move

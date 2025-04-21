@@ -1,0 +1,7 @@
+chess_bindings.cpp
+setup.py
+chess_engine.egg-info/PKG-INFO
+chess_engine.egg-info/SOURCES.txt
+chess_engine.egg-info/dependency_links.txt
+chess_engine.egg-info/requires.txt
+chess_engine.egg-info/top_level.txt

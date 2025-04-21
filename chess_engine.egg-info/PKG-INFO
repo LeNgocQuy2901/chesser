@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: chess_engine
+Version: 0.0.0
+Requires-Dist: pybind11>=2.6.0
+Dynamic: requires-dist
