@@ -73,21 +73,33 @@ class Searcher:
             if time.time() - self.start_time > self.time_limit:
                 break
 
+            depth_start_time = time.time()
             self.current_depth = depth
-            eval = self.alpha_beta(board, depth, 0, NEG_INF, POS_INF)
+            eval = self.search(board, depth, 0, NEG_INF, POS_INF)
 
             if self.stop_search or (time.time() - self.start_time > self.time_limit):
+                print(f"[Search] Depth {depth} incomplete (timeout) - best eval: {self.best_eval}")
                 break
 
+            elapsed = time.time() - depth_start_time
             self.best_eval = eval
             last_completed_best_move = self.best_move
 
+            # Print progress information
+            if self.is_mate_score(eval):
+                mate_in = self.score_to_ply(eval)
+                print(
+                    f"[Search] Depth {depth} completed in {elapsed:.2f}s - Score: Mate in {mate_in} - Move: {self.best_move}")
+            else:
+                print(f"[Search] Depth {depth} completed in {elapsed:.2f}s - Score: {eval} - Move: {self.best_move}")
+
             if self.is_mate_score(eval) and self.score_to_ply(eval) <= depth:
+                print(f"[Search] Found checkmate sequence, stopping search")
                 break
 
         return last_completed_best_move if last_completed_best_move else self.best_move
 
-    def alpha_beta(self, board, depth, ply, alpha, beta):
+    def search(self, board, depth, ply, alpha, beta):
         if time.time() - self.start_time > self.time_limit:
             self.stop_search = True
             return 0
@@ -116,6 +128,13 @@ class Searcher:
         legal_moves = list(board.legal_moves)
         best_val = NEG_INF
         best_move = None
+        move_count = 0
+
+        # Create a simple LMR table (can be precomputed)
+        def get_lmr_reduction(depth, move_count):
+            if depth < 3 or move_count < 4:
+                return 0
+            return int(0.75 + math.log(depth) * math.log(move_count) / 2.25)
 
         self.repetition_table.append(zobrist)
 
@@ -138,7 +157,7 @@ class Searcher:
 
             # 3. Promotion
             if move.promotion:
-                score += 8_000 if move.promotion == chess.QUEEN else 6_000
+                score += 2000 if move.promotion == chess.QUEEN else 6_000
 
             # 4. Killer move
             if move in self.killer_moves.get(ply, []):
@@ -158,7 +177,56 @@ class Searcher:
                 break
 
             board.push(move)
-            val = -self.alpha_beta(board, depth - 1, ply + 1, -beta, -alpha)
+            move_count += 1
+            gives_check = board.gives_check(move)
+            is_capture = board.is_capture(move)
+            is_quiet = not is_capture and not move.promotion
+            refutation_move = move == tt_move or move in self.killer_moves.get(ply, [])
+            history_score = self.history.get(move.uci(), 0)
+
+            # LMR conditions
+            do_full_search = True
+
+            if (depth >= 3 and move_count > (2 + 2 * is_pv) and
+                    not board.is_check() and not is_capture and not move.promotion):
+                # Calculate reduction
+                reduction = get_lmr_reduction(depth, move_count)
+
+                # Adjust reduction based on conditions
+                reduction += 0 if improving else 1
+                reduction += 0 if is_pv else 1
+                reduction += 0 if gives_check else 1
+                reduction -= 2 if refutation_move else 0
+                reduction -= history_score // 4000
+
+                # Ensure we don't reduce too much
+                reduction = min(depth - 1, max(1, reduction))
+
+                # Reduced depth search with zero window
+                board.push(move)
+                val = -self.search(board, depth - reduction, ply + 1, -alpha - 1, -alpha, False)
+                board.pop()
+
+                # If reduced search beat alpha but we're not at minimal reduction, do full search
+                do_full_search = val > alpha and reduction > 1
+
+            # Normal search if LMR wasn't done or the reduced search was promising
+            if do_full_search:
+                board.push(move)
+
+                # PVS - full window only for first move in PV nodes or if value might improve alpha
+                if is_pv and (move_count == 1 or val > alpha):
+                    val = -self.search(board, depth - 1, ply + 1, -beta, -alpha, True)
+                else:
+                    # Zero window search first
+                    val = -self.search(board, depth - 1, ply + 1, -alpha - 1, -alpha, False)
+
+                    # Full window research if promising and in PV node
+                    if is_pv and alpha < val < beta:
+                        val = -self.search(board, depth - 1, ply + 1, -beta, -alpha, True)
+
+                board.pop()
+            # val = -self.search(board, depth - 1, ply + 1, -beta, -alpha)
             board.pop()
 
             if self.stop_search:

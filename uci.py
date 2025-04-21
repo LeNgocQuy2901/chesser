@@ -45,7 +45,7 @@ class ChessEngine:
     def go(self, command):
         """Lệnh yêu cầu engine tìm nước đi tốt nhất."""
         print("go")
-        best_move_found = get_best_move(self.board, depth=3)
+        best_move_found = get_best_move(self.board, depth=10)
         print(f"bestmove {best_move_found}")
 
     def quit(self):
